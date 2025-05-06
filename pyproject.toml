@@ -1,0 +1,25 @@
+[project]
+name = "mines-dac-pressure"
+version = "1.0.0"
+description = "CLI tool for DAC ruby fluorescence pressure analysis"
+authors = [
+    { name = "Isaac Spackman", email = "ispackman@mines.edu" },
+    { name = "Kacy Mendoza", email = "kacy_mendoza@mines.edu" }
+]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.8"
+dependencies = [
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "scipy",
+    "lmfit"
+]
+
+[project.scripts]
+dac-pressure = "mines_dac.cli:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
