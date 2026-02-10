@@ -115,7 +115,7 @@ class FileResult:
 
 def _parse_two_column_numeric_lines(path: Path) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Robustly parse *mostly* two-column numeric spectra files.
+    Robustly parse *most* two-column numeric spectra files.
     Ignores lines with alphabetic characters (except 'nm'), and skips obvious non-spectral rows.
 
     This is more tolerant than a fixed `skiprows=3` approach, and is safer when instruments append
