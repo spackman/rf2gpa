@@ -1,6 +1,6 @@
 # Mines DAC Pressure Analysis Tool (rf2gpa)
 
-Analyze ruby fluorescence spectra (DAC) and convert fitted peak positions into pressure (GPa).
+Analyze ruby fluorescence spectra from a diamond anvil cell (DAC) and convert fitted peak positions into pressure (GPa).
 
 This repository now ships a **single, self-contained core script** with a built-in Tkinter GUI:
 
