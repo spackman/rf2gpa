@@ -5,7 +5,7 @@ description = "CLI tool for DAC ruby fluorescence pressure analysis"
 authors = [
   { name = "Isaac Spackman", email = "ispackman@mines.edu" },
   { name = "Kacy Mendoza", email = "kacy_mendoza@mines.edu" },
-  { name = "Vincent Castilow" }
+  { name = "Vincent Castilow", email = "vcastilow@mines.edu" }
 ]
 readme = "README.md"
 license = { text = "MIT" }

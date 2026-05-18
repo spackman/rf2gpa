@@ -4,12 +4,12 @@ Analyze ruby fluorescence spectra from a diamond anvil cell (DAC) and convert fi
 
 This repository now ships a **single, self-contained core script** with a built-in Tkinter GUI:
 
-- `ruby_rf_voigt_gui_py312_styling_v2.py` (GUI + optional CLI batch mode)
+- `rf2gpa.py` (GUI + optional CLI batch mode)
 
 ## Features
 
 - Robust parsing of *most* two-column spectra files (handles noisy headers/footers better than fixed `skiprows`).
-- Peak detection (`scipy.signal.find_peaks`) and **multi-Voigt** fitting (`lmfit`) inside a user-set ROI.
+- Peak detection (`scipy.signal.find_peaks`) and **multi-Voigt** fitting (`lmfit`) inside a user-set Region of Interest.
 - Overlay plotting (optionally normalized), optional per-dataset fitted curves.
 - Batch analysis with progress + results table.
 - Exports:
@@ -32,7 +32,7 @@ pip install numpy scipy pandas matplotlib lmfit
 From the project folder:
 
 ```bash
-python ruby_rf_voigt_gui_py312_styling_v2.py
+python rf2gpa.py
 ```
 
 (Alternative convenience launcher)
@@ -46,7 +46,7 @@ python run_gui.py
 The same core file also supports a batch CLI mode:
 
 ```bash
-python ruby_rf_voigt_gui_py312_styling_v2.py --cli \
+python rf2gpa.py --cli \
   --input "./testfiles" \
   --glob "*.txt" \
   --out "./ruby_rf_out" \
@@ -55,7 +55,7 @@ python ruby_rf_voigt_gui_py312_styling_v2.py --cli \
 
 ## Notes
 
-- Default ROI is 685–710 nm.
+- Default Region of Interest is 685–710 nm.
 - The reference wavelength (`λ_ref`) and its uncertainty are editable in the GUI.
 - The bundled `mines_dac/` package and `dac-pressure` CLI entrypoint are retained for backward compatibility,
   but **the new GUI script is the recommended workflow going forward**.

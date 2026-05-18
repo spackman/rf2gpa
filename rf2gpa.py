@@ -19,7 +19,7 @@ Dependencies:
     pip install numpy scipy pandas matplotlib lmfit
 
 Run:
-    python ruby_rf_voigt_gui_py312_styling_v2.py
+    python rf2gpa.py
 
 CLI batch (no GUI):
     python ruby_rf_voigt_gui_py312.py --cli --input "C:\\data" --glob "*.txt" --out "C:\\out" --workers 4
@@ -35,6 +35,7 @@ import re
 import sys
 import traceback
 from dataclasses import dataclass, asdict
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
@@ -245,14 +246,14 @@ def fit_multi_voigt_lmfit(
     cfg: AnalysisConfig,
 ) -> Tuple[np.ndarray, np.ndarray, "lmfit.model.ModelResult", List[str]]:
     """
-    Fit constant background + sum of Voigt peaks to ROI.
+    Fit constant background + sum of Voigt peaks to Region of Interest.
     Returns dense x/y for plotting, lmfit result, and list of Voigt component prefixes.
     """
     mask = (x >= xlim[0]) & (x <= xlim[1])
     x_fit = x[mask]
     y_fit = y[mask]
     if x_fit.size < 10:
-        raise ValueError("ROI contains too few points to fit.")
+        raise ValueError("Region of Interest contains too few points to fit.")
 
     model = ConstantModel(prefix="c_")
     params = model.make_params(c_c=float(np.median(y_fit)))
@@ -291,7 +292,7 @@ def analyze_one_file(path_str: str, cfg: AnalysisConfig) -> FileResult:
         x_roi = x[mask]
         y_roi = y[mask]
         if x_roi.size < 20:
-            raise ValueError(f"Not enough points inside ROI {roi}.")
+            raise ValueError(f"Not enough points inside Region of Interest {roi}.")
 
         guesses = detect_top_n_peaks(
             x_roi,
@@ -301,7 +302,7 @@ def analyze_one_file(path_str: str, cfg: AnalysisConfig) -> FileResult:
             prominence=cfg.peak_prominence,
         )
         if not guesses:
-            raise ValueError("No peaks detected; try lowering prominence or widening ROI.")
+            raise ValueError("No peaks detected; try lowering prominence or widening Region of Interest.")
 
         x_fit, y_fit, result, prefixes = fit_multi_voigt_lmfit(x, y, roi, guesses, cfg)
 
@@ -358,6 +359,32 @@ def _select_primary_peak(peaks: Sequence[PeakResult], cfg: AnalysisConfig) -> Op
     # default: max amplitude
     return max(peaks, key=lambda p: p.amplitude)
 
+
+
+def make_run_stamp() -> str:
+    """
+    Return a filesystem-safe timestamp for one analysis run.
+    Example: 20260518_143022
+    """
+    return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
+def timestamped_output_path(out_dir: Path, filename: str, run_stamp: str) -> Path:
+    """
+    Build a timestamped output path and avoid overwriting if a file already exists.
+    Example:
+        ruby_rf_results.csv -> ruby_rf_results_20260518_143022.csv
+    If the timestamped file already exists, appends _01, _02, etc.
+    """
+    base = Path(filename)
+    candidate = out_dir / f"{base.stem}_{run_stamp}{base.suffix}"
+    counter = 1
+
+    while candidate.exists():
+        candidate = out_dir / f"{base.stem}_{run_stamp}_{counter:02d}{base.suffix}"
+        counter += 1
+
+    return candidate
 
 def export_results_csv(results: Sequence[FileResult], out_csv: Path) -> None:
     out_csv.parent.mkdir(parents=True, exist_ok=True)
@@ -850,10 +877,11 @@ class RubyRFApp(tk.Tk):
 
         out_dir = Path(self.var_out_dir.get()).expanduser()
         out_dir.mkdir(parents=True, exist_ok=True)
+        run_stamp = make_run_stamp()
 
         self._clear_tree()
         self.progress.configure(maximum=len(self._files), value=0)
-        self.status.configure(text="Analyzing...")
+        self.status.configure(text=f"Analyzing... run {run_stamp}")
 
         # Run in background to keep GUI responsive
         import threading
@@ -864,17 +892,22 @@ class RubyRFApp(tk.Tk):
                 # store
                 self._results = {r.filepath: r for r in results}
 
-                # export CSV
+                # export CSV with timestamp so old runs are not overwritten
+                results_csv_path = None
                 if self.var_export_csv.get():
-                    export_results_csv(results, out_dir / "ruby_rf_results.csv")
+                    results_csv_path = timestamped_output_path(out_dir, "ruby_rf_results.csv", run_stamp)
+                    export_results_csv(results, results_csv_path)
 
-                # plots
+                # plots with the same timestamp as the CSV
                 if self.var_save_plots.get():
-                    self._save_plots(results, cfg, out_dir)
+                    self._save_plots(results, cfg, out_dir, run_stamp=run_stamp)
 
                 # update UI
+                status_msg = f"Done: {sum(r.ok for r in results)}/{len(results)} OK"
+                if results_csv_path is not None:
+                    status_msg += f" | CSV: {results_csv_path.name}"
                 self.after(0, lambda: self._populate_tree(results))
-                self.after(0, lambda: self.status.configure(text=f"Done: {sum(r.ok for r in results)}/{len(results)} OK"))
+                self.after(0, lambda msg=status_msg: self.status.configure(text=msg))
 
             except Exception as ex:
                 tb = traceback.format_exc()
@@ -885,7 +918,7 @@ class RubyRFApp(tk.Tk):
 
         threading.Thread(target=worker, daemon=True).start()
 
-    def _save_plots(self, results: Sequence[FileResult], cfg: AnalysisConfig, out_dir: Path) -> None:
+    def _save_plots(self, results: Sequence[FileResult], cfg: AnalysisConfig, out_dir: Path, run_stamp: Optional[str] = None) -> None:
         # Create plots without blocking UI too much; do it in the worker thread.
         title_tpl = self.var_plot_title.get().strip() or "Ruby fluorescence – {name}"
         xlabel = self.var_xlabel.get().strip() or "Wavelength (nm)"
@@ -897,6 +930,8 @@ class RubyRFApp(tk.Tk):
         fit_dashed = bool(self.var_fit_dashed.get())
 
         roi = (cfg.roi_min_nm, cfg.roi_max_nm)
+        if run_stamp is None:
+            run_stamp = make_run_stamp()
 
         for i, r in enumerate(results, start=1):
             self.after(0, lambda v=i: self.progress.configure(value=v))
@@ -950,7 +985,7 @@ class RubyRFApp(tk.Tk):
                     )
                 ax.legend(fontsize=9, loc="best")
 
-                out_png = out_dir / (name + ".png")
+                out_png = timestamped_output_path(out_dir, name + ".png", run_stamp)
                 fig.savefig(out_png, dpi=300)
             except Exception:
                 continue
@@ -1071,13 +1106,16 @@ def cli_main(argv: Sequence[str]) -> int:
     out_dir = Path(ns.out).expanduser()
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    run_stamp = make_run_stamp()
     results = run_batch(files, cfg, workers=ns.workers)
-    export_results_csv(results, out_dir / "ruby_rf_results.csv")
+
+    results_csv_path = timestamped_output_path(out_dir, "ruby_rf_results.csv", run_stamp)
+    export_results_csv(results, results_csv_path)
 
     ok = sum(r.ok for r in results)
-    print(f"Done: {ok}/{len(results)} OK. Wrote: {out_dir / 'ruby_rf_results.csv'}")
-    # Also dump a small summary
-    summary_path = out_dir / "ruby_rf_primary_summary.csv"
+    print(f"Done: {ok}/{len(results)} OK. Wrote: {results_csv_path}")
+    # Also dump a small summary with the same timestamp
+    summary_path = timestamped_output_path(out_dir, "ruby_rf_primary_summary.csv", run_stamp)
     with summary_path.open("w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["filepath", "primary_pressure_gpa", "primary_pressure_err_gpa", "ok", "message"])

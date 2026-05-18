@@ -1,4 +1,4 @@
-# LEGACY: retained for reference only. Use ruby_rf_voigt_gui_py312_styling_v2.py instead.
+# LEGACY: retained for reference only. Use rf2gpa.py instead.
 # helper_voigt_rf.py
 # Python 3.7 / Win7 compatible
 from typing import Tuple, Optional, List, Dict
