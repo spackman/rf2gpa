@@ -8,7 +8,7 @@ This repository now ships a **single, self-contained core script** with a built-
 
 ## Features
 
-- Robust parsing of *mostly* two-column spectra files (handles noisy headers/footers better than fixed `skiprows`).
+- Robust parsing of *most* two-column spectra files (handles noisy headers/footers better than fixed `skiprows`).
 - Peak detection (`scipy.signal.find_peaks`) and **multi-Voigt** fitting (`lmfit`) inside a user-set ROI.
 - Overlay plotting (optionally normalized), optional per-dataset fitted curves.
 - Batch analysis with progress + results table.
