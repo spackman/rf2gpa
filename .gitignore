@@ -1,7 +1,12 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+ruby_rf_out/
 *.py[cod]
 *$py.class
+.git/
+*.pyc
+*.pyo
+*.pyd
 
 # C extensions
 *.so
