@@ -4,7 +4,7 @@ setup(
     name='mines-dac-pressure',
     version='1.0.0',
     description='CLI tool for DAC ruby fluorescence pressure analysis',
-    author='Isaac Spackman, Kacy Mendoza',
+    author='Isaac Spackman, Kacy Mendoza, Vincent Castilow',
     packages=find_packages(),
     install_requires=[
         "numpy", "pandas", "matplotlib", "scipy", "lmfit"
